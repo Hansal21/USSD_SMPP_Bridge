@@ -8,6 +8,7 @@ import org.smpp.Data;
 import org.smpp.Session;
 import org.smpp.TCPIPConnection;
 import org.smpp.pdu.*;
+import org.smpp.util.ByteBuffer;
 import org.smpp.util.DataCodingCharsetHandler;
 
 /**
@@ -180,7 +181,7 @@ public class SMPPSender {
 						if (message.equals("quit"))
 							smppSender.unbind();
 						smppSender.submit("+912233445566", message, sender, senderTon, senderNpi);
-						PDU pdu = session.receive(150000);
+						PDU pdu = session.receive(1500);
 
 						if(pdu != null){
 							DeliverSM sms = (DeliverSM) pdu;
@@ -223,8 +224,23 @@ public class SMPPSender {
 	 * @see Session#bind(BindRequest)
 	 * @see Session#bind(BindRequest,ServerPDUEventListener)
 	 */
+
+	private void getCredentials(){
+
+		Scanner scanner = new Scanner(System.in);
+		System.out.println("Enter username ::  ");
+		this.systemId =  scanner.nextLine();
+		System.out.println("Enter password ::  ");
+		this.password = scanner.nextLine();
+		System.out.println("Enter your mobile no :: ");
+		String addrs = scanner.nextLine();
+		try {
+			this.sourceAddress.setAddress(addrs);
+		}catch (Exception e){}
+	}
 	private void bind() {
 		try {
+
 			if (bound) {
 				System.out.println("Already bound, unbind first.");
 				return;
@@ -233,7 +249,9 @@ public class SMPPSender {
 			BindRequest request = null;
 			BindResponse response = null;
 
+			getCredentials();
 			request = new BindTransmitter();
+
 
 			TCPIPConnection connection = new TCPIPConnection(ipAddress, port);
 			connection.setReceiveTimeout(20 * 1000);
@@ -256,7 +274,8 @@ public class SMPPSender {
 				System.out.println("Bind failed, code " + response.getCommandStatus());
 			}
 		} catch (Exception e) {
-			System.out.println("Bind operation failed. " + e);
+//			System.out.println("Bind operation failed. "  + e);
+			e.printStackTrace();
 		}
 	}
 
@@ -301,6 +320,10 @@ public class SMPPSender {
 	 */
 	private void submit(String destAddress, String shortMessage, String sender, byte senderTon, byte senderNpi) {
 		try {
+
+			destAddress = "mosipgway";
+			sender = this.systemId;
+
 			SubmitSM request = new SubmitSM();
 			SubmitSMResp response;
 

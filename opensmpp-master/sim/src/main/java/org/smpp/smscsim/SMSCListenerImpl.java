@@ -160,6 +160,9 @@ public class SMSCListenerImpl extends SmppObject implements Runnable, SMSCListen
 					pduProcessor = processorFactory.createPDUProcessor(session);
 				}
 				session.setPDUProcessor(pduProcessor);
+				String clientId = "";
+
+//				SMSCSessionImpl.setMyPDUProcessor(clientId,pduProcessor);
 				Thread thread = new Thread(session);
 				thread.start();
 				debug.write("SMSCListener launched a session on the accepted connection.");

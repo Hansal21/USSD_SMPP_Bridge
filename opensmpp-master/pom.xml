@@ -22,7 +22,8 @@
 		<module>charset</module>
 		<module>client</module>
 		<module>sim</module>
-	</modules>
+        <module>mosipgway</module>
+    </modules>
 
 	<licenses>
 		<license>

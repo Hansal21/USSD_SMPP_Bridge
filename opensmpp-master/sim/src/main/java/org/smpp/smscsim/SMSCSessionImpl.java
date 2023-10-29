@@ -11,6 +11,7 @@
 package org.smpp.smscsim;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import org.smpp.Connection;
 import org.smpp.Data;
@@ -48,6 +49,18 @@ public class SMSCSessionImpl extends SmppObject implements SMSCSession {
 	private boolean keepReceiving = true;
 	private boolean isReceiving = false;
 	private int timeoutCntr = 0;
+
+	private static HashMap<String,PDUProcessor> clientPDUProcessors = new HashMap<String,PDUProcessor>();
+
+	public static void setMyPDUProcessor(String client,PDUProcessor pduProcessor){
+
+		if(!clientPDUProcessors.containsKey(client))
+			clientPDUProcessors.put(client,pduProcessor);
+	}
+
+	public static PDUProcessor getMyPDUProcessor(String client){
+		return clientPDUProcessors.get(client);
+	}
 
 	/**
 	 * Initialises the session with the connection the session
@@ -95,21 +108,46 @@ public class SMSCSessionImpl extends SmppObject implements SMSCSession {
 				try {
 					debug.write("SMSCSession going to receive a PDU");
 					pdu = receiver.receive(getReceiveTimeout());
+					System.out.println(((SubmitSM)pdu).getDestAddr().getAddress());
 				} catch (Exception e) {
 					debug.write("SMSCSession caught exception receiving PDU " + e.getMessage());
 				}
 
 				if (pdu != null) {
+
+					String client = "";
+					if(pdu.getClass().getName().equals("org.smpp.pdu.BindTransmitter"))
+						client = ((BindTransmitter) pdu).getSystemId();
+
+					setMyPDUProcessor(client, this.pduProcessor);
+					int commandId = ((Request)pdu).getCommandId();
 					timeoutCntr = 0;
 					if (pdu.isRequest()) {
+
+						if (commandId == Data.SUBMIT_SM || commandId == Data.DELIVER_SM) {
+
+							String destination = ((SubmitSM) pdu).getDestAddr().getAddress();
+							PDUProcessor destProc = getMyPDUProcessor(destination);
+
+							try {
+
+								destProc.serverRequest((DeliverSM) pdu);
+
+							} catch (Exception e) {
+
+							}
+						}
+
 						System.out.println("SMSCSession got request ------- " + pdu.debugString());
 						debug.write("SMSCSession got request " + pdu.debugString());
+//
 						pduProcessor.clientRequest((Request) pdu);
-					} else if (pdu.isResponse()) {
+					}
+					 else if (pdu.isResponse()) {
 						debug.write("SMSCSession got response " + pdu.debugString());
 						pduProcessor.clientResponse((Response) pdu);
 					} else {
-						debug.write("SMSCSession not reqest nor response => not doing anything.");
+						debug.write("SMSCSession not request nor response => not doing anything.");
 					}
 				} else {
 					timeoutCntr++;
